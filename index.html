@@ -49,6 +49,12 @@
   --premium:#1C1F24; --premium-2:#23262C; --premium-line:rgba(201,204,212,.28); --premium-ink:#EAEBED; --premium-ink2:#9DA2AA;
 }
 *{box-sizing:border-box;margin:0;padding:0}
+/* ===== KAUF-FARBE (KANON 1.1): navy = kostet Geld ===== */
+:root{--kauf:#102444;--kauf-2:#1D3B6E}
+[data-theme="dark"]{--kauf:#6E9BE0;--kauf-2:#8FB4E8}
+.btn-kauf{background:var(--kauf);color:#FFFFFF;border-color:transparent;box-shadow:var(--sh-2)}
+.btn-kauf:active{transform:translateY(1px)}
+[data-theme="dark"] .btn-kauf{color:#0B1220}
 html{-webkit-text-size-adjust:100%}
 body{background:var(--bg-2);color:var(--text);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased;transition:background .3s,color .3s}
 .app{max-width:var(--app);margin:0 auto;min-height:100vh;background:var(--bg);position:relative;box-shadow:var(--sh-3);display:flex;flex-direction:column}
@@ -563,7 +569,7 @@ body:not([data-screen="hub"]) .tb-in{justify-content:flex-end}
 /* Eine Kapitelliste mit zwei Preisen */
 .store-clist{display:flex;flex-direction:column}
 .pl-akk{margin:6px 0 2px}
-.pl-akk>summary{display:flex;width:100%;justify-content:center;align-items:center;cursor:pointer;list-style:none;background:#16273f;color:#fff;padding:12px 16px;border-radius:12px;font-weight:600;min-height:48px;box-sizing:border-box}
+.pl-akk>summary{display:flex;width:100%;justify-content:center;align-items:center;cursor:pointer;list-style:none;background:var(--kauf);color:#fff;padding:12px 16px;border-radius:12px;font-weight:600;min-height:48px;box-sizing:border-box}
 .pl-akk>summary::-webkit-details-marker{display:none}
 .pl-akk>summary::after{content:"\25BE";margin-left:8px;font-size:.85em;opacity:.9}
 .pl-akk[open]>summary::after{content:"\25B4"}
@@ -908,7 +914,7 @@ window.BKBC = (function(){
   <div class="pathwrap" id="pathwrap"></div>
 
   <div style="margin-top:20px" id="pfadCtaWrap" hidden>
-    <button class="btn btn-primary btn-block" id="pfadCta">Alle 10 Kapitel freischalten <svg class="i arrow"><use href="#i-arrow"/></svg></button>
+    <button class="btn btn-kauf btn-block" id="pfadCta">Alle 10 Kapitel freischalten <svg class="i arrow"><use href="#i-arrow"/></svg></button>
   </div>
 </section>
 
@@ -950,7 +956,7 @@ window.BKBC = (function(){
     <span class="pill gratis"><span class="dot"></span> aktiv</span>
   </div>
   <div id="accBuyWrap">
-    <button class="btn btn-silver btn-block" style="margin:4px 0 2px" id="accBuy">Preise ansehen &rsaquo;</button>
+    <button class="btn btn-kauf btn-block" style="margin:4px 0 2px" id="accBuy">Preise ansehen &rsaquo;</button>
   </div>
 
   <div class="setrow">
@@ -3678,7 +3684,7 @@ window.BKBC = (function(){
     if(!komplett){
       H.push('<div class="sec-lbl">Komplettpaket</div>');
       H.push('<div class="store-pkgrow feat"><div class="pkgr-t"><b>OSTA Komplettpaket</b><small>Alle 10 Lektionen in der App · WORKBOOK mit allen Handouts per E-Mail · Live Q&A gratis dazu · 10 € Cashback nach deinem Klausur-Feedback</small></div><div class="pkgr-p">49,90 €<s>89,00 €</s></div></div>');
-      H.push('<a class="btn btn-primary btn-block" style="margin:6px 0 2px" href="'+plinkUrl(PLINK.paket)+'" target="_blank" rel="noopener">Komplettpaket freischalten · 49,90 €</a>');
+      H.push('<a class="btn btn-kauf btn-block" style="margin:6px 0 2px" href="'+plinkUrl(PLINK.paket)+'" target="_blank" rel="noopener">Komplettpaket freischalten · 49,90 €</a>');
       H.push('<div class="store-anrech">Einzeln wären es 10 × 8,90 € = 89,00 € · du sparst 39,10 €.</div>');
       H.push('<div class="sec-lbl">Einzelnes Kapitel</div>');
       H.push('<div class="store-pkgrow"><div class="pkgr-t"><b>Kapitel-Bundle</b><small>Lektion + Handout-PDF, untrennbar. Dein Kapitel wählst du im Bezahlprozess (Stripe) · das Handout kommt innerhalb von 15 Minuten per E-Mail.</small></div><div class="pkgr-p">8,90 €</div></div>');
@@ -3689,7 +3695,7 @@ window.BKBC = (function(){
       H.push('<div class="store-status"><b>Live Q&A freigeschaltet.</b> 120 Minuten vor der Klausur, online. Den Termin stimmen wir in der WhatsApp-Gruppe ab · den Link bekommst du per E-Mail.</div>');
     } else if(ownedChapters()>0){
       H.push('<div class="store-pkgrow"><div class="pkgr-t"><b>Live Q&A (online)</b><small>Dauer: 120 Minuten! In den Tagen vor der Klausur. Du sendest deine schwierigsten Aufgaben vorab ein. Wir lösen Sie ausführlich und beantworten Fragen! Den Termin stimmen wir in der WhatsApp-Gruppe ab.</small></div><div class="pkgr-p">10,00 €</div></div>');
-      H.push('<a class="btn btn-silver btn-block" style="margin:6px 0 2px" href="'+plinkUrl(PLINK.qa)+'" target="_blank" rel="noopener">Live Q&A freischalten · 10,00 €</a>');
+      H.push('<a class="btn btn-kauf btn-block" style="margin:6px 0 2px" href="'+plinkUrl(PLINK.qa)+'" target="_blank" rel="noopener">Live Q&A freischalten · 10,00 €</a>');
       H.push('<div class="store-anrech">Im Komplettpaket ist die Live Q&A Session gratis enthalten!</div>');
     } else {
       H.push('<div class="store-pkgrow"><div class="pkgr-t"><b>Live Q&A (online)</b><small>Dauer: 120 Minuten! In den Tagen vor der Klausur. Du sendest deine schwierigsten Aufgaben vorab ein. Wir lösen Sie ausführlich und beantworten Fragen! Den Termin stimmen wir in der WhatsApp-Gruppe ab.</small></div></div>');
