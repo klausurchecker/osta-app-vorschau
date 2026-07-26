@@ -970,6 +970,9 @@ window.BKBC = (function(){
     <div class="cc-sub">beim Kauf des Komplettpakets — für dein Feedback nach der Klausur.</div>
   </div>
 
+  <div class="sec-lbl">Klausur-Werkzeuge</div>
+  <div class="linklist"><a href="#" data-tab="simulator" onclick="return false">Klausursimulator</a><a href="#" data-tab="spick" onclick="return false">Formelsammlung</a><a href="#" data-tab="plan" onclick="return false">Notfallplan</a></div>
+
   <div class="sec-lbl">Meine Kurse</div>
   <div class="linklist" id="kursSwitch">
     <a href="#" onclick="return false" aria-current="page" style="cursor:default"><span><b>OSTA</b> · Statistik 1</span><span class="pill orange">Aktiv</span></a>
@@ -1145,6 +1148,1061 @@ window.BKBC = (function(){
 </div>
 
 <!-- tabbar -->
+<section id="screen-simulator" class="screen">
+  <div id="simWrap" class="sim-wrap"></div>
+</section>
+
+<style id="simStyle">
+/* ===== Klausursimulator · fach-agnostisch, gescopet auf #screen-simulator ===== */
+#screen-simulator .sim-wrap{min-height:1px}
+#screen-simulator h3{font-family:var(--serif);font-weight:600;font-size:17px;color:var(--text);margin:0 0 6px;letter-spacing:-.01em}
+
+#screen-simulator .sim-card{background:var(--surface);border:1px solid var(--line-2);border-radius:16px;padding:18px;box-shadow:var(--sh-1);margin-bottom:14px}
+#screen-simulator .sim-card p{color:var(--text-2);font-size:14px;line-height:1.55;margin-top:4px}
+
+/* Modus-Auswahl */
+#screen-simulator .sim-modes{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+#screen-simulator .sim-mode{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;padding:16px;border-radius:14px;border:1px solid var(--line-2);background:var(--surface);cursor:pointer;min-height:48px;font-family:var(--sans);color:var(--text)}
+#screen-simulator .sim-mode.rec{border-color:var(--accent)}
+#screen-simulator .sim-mode-t{display:block}
+#screen-simulator .sim-mode-t b{display:block;font-size:15.5px;font-weight:600;color:var(--text)}
+#screen-simulator .sim-mode-t small{display:block;margin-top:3px;font-size:12.5px;color:var(--text-2)}
+#screen-simulator .sim-mode .i{color:var(--text-3);flex:none;width:17px;height:17px}
+#screen-simulator .sim-pill-rec{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--accent-deep);background:color-mix(in srgb, var(--accent) 14%, var(--surface-2));padding:2px 8px;border-radius:999px;margin-left:8px;vertical-align:middle}
+
+/* Lauf: Kopfzeile, Timer, Fortschritt */
+#screen-simulator .sim-run-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+#screen-simulator .sim-progress{font-size:12.5px;color:var(--text-2);font-weight:600}
+#screen-simulator .sim-timer{font-variant-numeric:tabular-nums;font-weight:700;font-size:13.5px;padding:5px 11px;border-radius:999px;background:var(--surface-2);color:var(--text-2);display:inline-flex;align-items:center;gap:5px}
+#screen-simulator .sim-timer .i{width:14px;height:14px}
+#screen-simulator .sim-timer.sim-warn{color:var(--wrong);background:var(--wrong-bg)}
+#screen-simulator .sim-bar{height:6px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin:0 0 16px}
+#screen-simulator .sim-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent-deep),var(--accent));border-radius:99px;transition:width .3s ease}
+
+/* Fragekarte */
+#screen-simulator .sim-q{background:var(--surface);border:1px solid var(--line-2);border-radius:16px;padding:18px;box-shadow:var(--sh-1)}
+#screen-simulator .sim-tag{display:inline-block;font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);background:var(--surface-2);border:1px solid var(--line-2);padding:2px 9px;border-radius:999px;margin-bottom:10px}
+#screen-simulator .sim-stem{font-family:var(--serif);font-weight:600;font-size:17px;line-height:1.42;color:var(--text);letter-spacing:-.01em}
+#screen-simulator .sim-opts{margin-top:14px;display:flex;flex-direction:column;gap:9px}
+#screen-simulator .sim-opt{display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left;padding:12px 14px;border-radius:12px;border:1px solid var(--line-2);background:var(--bg);color:var(--text-2);font-family:var(--sans);font-size:15px;line-height:1.4;cursor:pointer;min-height:48px}
+#screen-simulator .sim-opt.sel{border-color:var(--accent);background:color-mix(in srgb, var(--accent) 10%, var(--bg));color:var(--text);font-weight:600}
+#screen-simulator .sim-num{width:100%;margin-top:14px;padding:13px 14px;border-radius:12px;background:var(--bg);border:1px solid var(--line-2);color:var(--text);font-family:var(--sans);font-size:16px;min-height:48px}
+#screen-simulator .sim-nav{display:flex;gap:10px;margin-top:16px}
+#screen-simulator .sim-nav .btn{flex:1}
+
+/* Auswertung */
+#screen-simulator .sim-score-card{text-align:center}
+#screen-simulator .sim-score{display:flex;flex-direction:column;align-items:center;gap:2px}
+#screen-simulator .sim-score-num{font-family:var(--serif);font-weight:600;font-size:42px;line-height:1}
+#screen-simulator .sim-score.good .sim-score-num{color:var(--done)}
+#screen-simulator .sim-score.mid .sim-score-num{color:var(--accent-deep)}
+#screen-simulator .sim-score.bad .sim-score-num{color:var(--wrong)}
+#screen-simulator .sim-score-lbl{font-size:13.5px;color:var(--text-2)}
+#screen-simulator .sim-ampel{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 12px;border-radius:999px;margin-top:10px}
+#screen-simulator .sim-ampel.good{background:var(--done-bg);color:var(--done)}
+#screen-simulator .sim-ampel.mid{background:color-mix(in srgb, var(--accent) 15%, var(--surface-2));color:var(--accent-deep)}
+#screen-simulator .sim-ampel.bad{background:var(--wrong-bg);color:var(--wrong)}
+
+#screen-simulator .sim-weak-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--hair);font-size:14px;color:var(--text)}
+#screen-simulator .sim-weak-row:last-child{border-bottom:none}
+#screen-simulator .sim-weak-frac{color:var(--text-3);font-size:12.5px;white-space:nowrap}
+
+#screen-simulator .sim-list{margin-top:2px}
+#screen-simulator .sim-item{border:1px solid var(--line-2);border-radius:13px;background:var(--surface);margin-bottom:9px;overflow:hidden}
+#screen-simulator .sim-item summary{list-style:none;cursor:pointer;padding:13px 14px;display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text);min-height:48px}
+#screen-simulator .sim-item summary::-webkit-details-marker{display:none}
+#screen-simulator .sim-item summary::marker{content:""}
+#screen-simulator .sim-item .sim-ic{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;flex:none}
+#screen-simulator .sim-item.ok .sim-ic{background:var(--done-bg);color:var(--done)}
+#screen-simulator .sim-item.bad .sim-ic{background:var(--wrong-bg);color:var(--wrong)}
+#screen-simulator .sim-item-stem{flex:1;min-width:0;font-weight:600}
+#screen-simulator .sim-chev{color:var(--text-3);transition:transform .2s;flex:none}
+#screen-simulator .sim-item[open] .sim-chev{transform:rotate(90deg)}
+#screen-simulator .sim-item-body{padding:0 14px 16px;font-size:13.5px;color:var(--text-2);line-height:1.55}
+#screen-simulator .sim-item-body b{color:var(--text)}
+#screen-simulator .sim-item-ans{margin:0 0 10px;padding:9px 11px;border-radius:10px;background:var(--surface-2);font-size:13px;color:var(--text)}
+
+#screen-simulator .sim-actions{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+#screen-simulator .sim-actions .btn{width:100%}
+
+#screen-simulator .sim-buy-card{border:2px solid var(--accent)}
+
+@media(min-width:380px){
+  #screen-simulator .sim-score-num{font-size:48px}
+}
+</style>
+
+<script id="simCore">
+(function(){
+  "use strict";
+
+  var simWrap = document.getElementById("simWrap");
+  if(!simWrap){
+    /* Ohne Markup kein Betrieb möglich, aber die API muss trotzdem existieren. */
+    window.BK_SIM_OPEN = function(){};
+    return;
+  }
+
+  /* ================= Helfer ================= */
+  function $(id){ return document.getElementById(id); }
+  function esc(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+  function fmtDe(n){ return String(n).replace(".", ","); }
+  function parseNum(raw){
+    var s = String(raw == null ? "" : raw).replace(",", ".").trim();
+    if(s === "") return NaN;
+    return parseFloat(s);
+  }
+  function fmtTime(ms){
+    if(ms < 0) ms = 0;
+    var s = Math.ceil(ms / 1000);
+    var mm = Math.floor(s / 60), ss = s % 60;
+    return (mm < 10 ? "0" : "") + mm + ":" + (ss < 10 ? "0" : "") + ss;
+  }
+  function shuffle(arr){
+    var i, j, tmp;
+    for(i = arr.length - 1; i > 0; i--){
+      j = Math.floor(Math.random() * (i + 1));
+      tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
+    return arr;
+  }
+  function rangeArray(n){ var a = [], i; for(i = 0; i < n; i++) a.push(i); return a; }
+  function computeFull(){
+    return (typeof window.BK_SIM_ACCESS === "function") ? !!window.BK_SIM_ACCESS() : false;
+  }
+
+  /* ================= Modi ================= */
+  var MODES = {
+    kurz:     {key:"kurz",     label:"Kurz",     n:10, min:15},
+    klausur:  {key:"klausur",  label:"Klausur",  n:20, min:40, def:true},
+    marathon: {key:"marathon", label:"Marathon", n:30, min:60},
+    demo:     {key:"demo",     label:"Demo",     n:3,  min:0}
+  };
+
+  /* ================= Fragenbanken einlesen ================= */
+  function getBanks(){
+    var out = [];
+    var els = document.querySelectorAll('script[id^="qbank-"]');
+    Array.prototype.forEach.call(els, function(el){
+      var m = /qbank-(\d+)/.exec(el.id);
+      if(!m) return;
+      var data;
+      try { data = JSON.parse(el.textContent || ""); } catch(e){ return; }
+      if(!data || !data.questions || !data.questions.length) return;
+      out.push({n: parseInt(m[1], 10), topic: data.topic || ("Kapitel " + m[1]), questions: data.questions});
+    });
+    out.sort(function(a, b){ return a.n - b.n; });
+    return out;
+  }
+
+  /* Innerhalb eines Kapitels: Runden über die Schwierigkeiten, damit eine echte
+     Mischung entsteht, statt reinem Zufall auf eine Bank voller "mittel"-Fragen. */
+  function pickFromChapter(shuffledList, want){
+    var byDiff = {leicht: [], mittel: [], schwer: []};
+    var i;
+    for(i = 0; i < shuffledList.length; i++){
+      var d = shuffledList[i].difficulty;
+      if(!byDiff[d]) byDiff[d] = [];
+      byDiff[d].push(shuffledList[i]);
+    }
+    var order = ["mittel", "schwer", "leicht"];
+    var idxs = {leicht:0, mittel:0, schwer:0};
+    var out = [], remaining = want, progress = true;
+    while(remaining > 0 && progress){
+      progress = false;
+      for(i = 0; i < order.length && remaining > 0; i++){
+        var d = order[i];
+        if(idxs[d] < byDiff[d].length){
+          out.push(byDiff[d][idxs[d]]);
+          idxs[d]++; remaining--; progress = true;
+        }
+      }
+    }
+    return out;
+  }
+
+  function wrapQ(q, bank){
+    var item = {q: q, chapter: bank.n, topic: bank.topic, given: null, correct: null};
+    if(q.type === "single" && q.options){ item.options = shuffle(q.options.slice()); }
+    return item;
+  }
+
+  /* Gleich viele Fragen je Kapitel, Rest zufällig auf Kapitel verteilt,
+     fehlender Bestand wird aus dem Rest-Pool aller Kapitel aufgefüllt. */
+  function pickQuestions(banks, total){
+    var C = banks.length;
+    if(C === 0) return [];
+    var pools = [], i, k;
+    for(i = 0; i < C; i++){ pools.push({bank: banks[i], list: shuffle(banks[i].questions.slice())}); }
+
+    var base = Math.floor(total / C);
+    var rem = total - base * C;
+    var order = shuffle(rangeArray(C));
+    var extra = {};
+    for(i = 0; i < rem; i++){ extra[order[i]] = true; }
+
+    var picked = [], leftover = [];
+    for(i = 0; i < C; i++){
+      var want = base + (extra[i] ? 1 : 0);
+      var list = pools[i].list;
+      var chosen = pickFromChapter(list, Math.min(want, list.length));
+      var chosenIds = {};
+      for(k = 0; k < chosen.length; k++){ chosenIds[chosen[k].id] = true; picked.push(wrapQ(chosen[k], pools[i].bank)); }
+      for(k = 0; k < list.length; k++){ if(!chosenIds[list[k].id]) leftover.push(wrapQ(list[k], pools[i].bank)); }
+    }
+    leftover = shuffle(leftover);
+    var need = total - picked.length, li = 0;
+    while(need > 0 && li < leftover.length){ picked.push(leftover[li]); li++; need--; }
+
+    return shuffle(picked);
+  }
+
+  /* ================= Zustand ================= */
+  var RUN = null;
+  var LAST_MODE = "klausur";
+
+  /* ================= Intro / Modus-Auswahl ================= */
+  function modeCardHtml(mode){
+    var recBadge = mode.def ? "<span class='sim-pill-rec'>Standard</span>" : "";
+    return "<button type='button' class='sim-mode" + (mode.def ? " rec" : "") + "' data-mode='" + mode.key + "'>" +
+      "<span class='sim-mode-t'><b>" + esc(mode.label) + recBadge + "</b><small>" + mode.n + " Fragen &middot; " + mode.min + " Min</small></span>" +
+      "<svg class='i'><use href='#i-arrow'/></svg>" +
+    "</button>";
+  }
+
+  function renderIntro(){
+    stopTimer();
+    RUN = null;
+    var full = computeFull();
+    var html = "<div class='scr-h'><span class='eyebrow'>Klausursimulator</span><h1>Bereit f&uuml;r die echte Klausur?</h1>" +
+      "<p>Gemischte Fragen aus allen Kapiteln &ndash; wie in der echten Pr&uuml;fung.</p></div>";
+    if(full){
+      html += "<div class='sim-modes'>" + modeCardHtml(MODES.kurz) + modeCardHtml(MODES.klausur) + modeCardHtml(MODES.marathon) + "</div>";
+    } else {
+      html += "<div class='sim-card'><h3>Kostenlos testen</h3>" +
+        "<p>3 gemischte Fragen aus allen Kapiteln, ganz ohne Zeitdruck. Der vollst&auml;ndige Simulator mit Kurz-, Klausur- und Marathon-Modus geh&ouml;rt zum Komplettpaket.</p>" +
+        "<button type='button' class='btn btn-primary btn-block' id='simDemoStart' style='margin-top:12px'>Demo starten</button></div>";
+    }
+    simWrap.innerHTML = html;
+  }
+
+  function renderNoQuestions(){
+    simWrap.innerHTML = "<div class='sim-card' style='text-align:center'><h3>Keine Fragen gefunden</h3>" +
+      "<p>Es konnten gerade keine Fragen aus den Kapiteln geladen werden. Bitte versuch es sp&auml;ter erneut.</p></div>";
+  }
+
+  /* ================= Lauf starten ================= */
+  function startRun(modeKey){
+    stopTimer();
+    var full = computeFull();
+    var modeCfg = MODES[modeKey];
+    if(!modeCfg || (modeKey !== "demo" && !full)){ modeCfg = MODES.demo; modeKey = "demo"; }
+    LAST_MODE = modeKey;
+
+    var banks = getBanks();
+    var items = pickQuestions(banks, modeCfg.n);
+    if(!items.length){ renderNoQuestions(); return; }
+
+    RUN = {
+      modeKey: modeKey,
+      label: modeCfg.label,
+      items: items,
+      idx: 0,
+      totalMs: modeCfg.min > 0 ? modeCfg.min * 60000 : 0,
+      deadline: modeCfg.min > 0 ? (Date.now() + modeCfg.min * 60000) : 0,
+      timerId: null,
+      timedOut: false,
+      correctCount: 0, total: 0, pct: 0, subMap: {}, wrongList: []
+    };
+    renderRun();
+    if(RUN.totalMs > 0) startTimer();
+  }
+
+  /* ================= Timer ================= */
+  function stopTimer(){ if(RUN && RUN.timerId){ clearInterval(RUN.timerId); RUN.timerId = null; } }
+  function startTimer(){
+    if(!RUN) return;
+    RUN.timerId = setInterval(function(){
+      if(!RUN) return;
+      var remaining = RUN.deadline - Date.now();
+      if(remaining <= 0){
+        clearInterval(RUN.timerId); RUN.timerId = null;
+        finishRun(true);
+        return;
+      }
+      updateTimerDisplay(remaining);
+    }, 500);
+    updateTimerDisplay(RUN.deadline - Date.now());
+  }
+  function updateTimerDisplay(remainingArg){
+    if(!RUN) return;
+    var remaining = (typeof remainingArg === "number") ? remainingArg : (RUN.deadline - Date.now());
+    var val = $("simTimerVal"), box = $("simTimer");
+    if(!val || !box) return;
+    val.textContent = fmtTime(remaining);
+    var frac = RUN.totalMs > 0 ? (remaining / RUN.totalMs) : 1;
+    box.classList.toggle("sim-warn", frac < 0.20);
+  }
+
+  /* ================= Lauf rendern (eine Frage pro Screen) ================= */
+  function renderRun(){
+    if(!RUN) return;
+    var item = RUN.items[RUN.idx];
+    var n = RUN.items.length;
+    var html = "";
+
+    html += "<div class='sim-run-head'><span class='sim-progress'>Frage " + (RUN.idx + 1) + " von " + n + "</span>";
+    if(RUN.totalMs > 0){
+      html += "<span class='sim-timer' id='simTimer'><svg class='i'><use href='#i-clock'/></svg><span id='simTimerVal'>--:--</span></span>";
+    }
+    html += "</div>";
+    html += "<div class='sim-bar'><i style='width:" + Math.round((RUN.idx / n) * 100) + "%'></i></div>";
+
+    html += "<div class='sim-q'>";
+    /* Nur "Kapitel N · Unterthema" - der volle topic-String der Fragenbank
+       ("Management 1 (BMGT) · Goethe-Uni Frankfurt · Kapitel 4 - ...") sprengt
+       auf 375 px drei Zeilen und draengt die Frage aus dem Bild. */
+    html += "<span class='sim-tag'>Kapitel " + item.chapter
+          + (item.q && item.q.subtopic ? " &middot; " + esc(item.q.subtopic) : "") + "</span>";
+    html += "<div class='sim-stem'>" + item.q.stem + "</div>";
+    if(item.q.type === "single"){
+      html += "<div class='sim-opts'>";
+      for(var oi = 0; oi < item.options.length; oi++){
+        html += "<button type='button' class='sim-opt" + (item.given === oi ? " sel" : "") + "' data-oi='" + oi + "'><span>" + item.options[oi] + "</span></button>";
+      }
+      html += "</div>";
+    } else {
+      var val = (item.given != null) ? esc(item.given) : "";
+      html += "<input type='text' inputmode='decimal' class='sim-num' id='simNumInput' placeholder='Zahl eingeben, z. B. 0,29' value='" + val + "'>";
+    }
+    html += "</div>";
+
+    html += "<div class='sim-nav'>";
+    html += "<button type='button' class='btn btn-silver' id='simPrev'" + (RUN.idx === 0 ? " disabled" : "") + "><svg class='i' style='width:15px'><use href='#i-left'/></svg> Zur&uuml;ck</button>";
+    html += "<button type='button' class='btn btn-primary' id='simNext'>" + (RUN.idx === n - 1 ? "Abgeben" : "Weiter") + "</button>";
+    html += "</div>";
+    html += "<button type='button' class='btn btn-ghost btn-sm btn-block' id='simQuit' style='margin-top:10px'>Simulator verlassen</button>";
+
+    simWrap.innerHTML = html;
+    if(RUN.totalMs > 0) updateTimerDisplay();
+  }
+
+  /* ================= Auswertung ================= */
+  function weakestTopics(subMap, limit){
+    var keys = Object.keys(subMap);
+    keys.sort(function(a, b){
+      var ra = subMap[a].correct / subMap[a].total, rb = subMap[b].correct / subMap[b].total;
+      if(ra !== rb) return ra - rb;
+      return subMap[b].total - subMap[a].total;
+    });
+    return keys.slice(0, limit);
+  }
+
+  function scoreRun(run){
+    var items = run.items, i, correctCount = 0;
+    var subMap = {}, wrongList = [], wrongSeen = {};
+    for(i = 0; i < items.length; i++){
+      var it = items[i], q = it.q, ok = false;
+      if(q.type === "single"){
+        ok = (it.given != null) && (it.options[it.given] === q.answer);
+      } else {
+        var raw = it.given;
+        if(raw != null && String(raw).trim() !== ""){
+          var v = parseNum(raw);
+          var tol = (typeof q.tolerance === "number") ? q.tolerance : 0.01;
+          ok = !isNaN(v) && Math.abs(v - q.answer) <= tol;
+        }
+      }
+      it.correct = ok;
+      if(ok) correctCount++;
+      else if(!wrongSeen[q.subtopic]){ wrongSeen[q.subtopic] = true; wrongList.push(q.subtopic); }
+
+      var key = q.subtopic || "Allgemein";
+      if(!subMap[key]) subMap[key] = {correct: 0, total: 0, chapter: it.chapter};
+      subMap[key].total++;
+      if(ok) subMap[key].correct++;
+    }
+    run.correctCount = correctCount;
+    run.total = items.length;
+    run.pct = items.length ? Math.round(100 * correctCount / items.length) : 0;
+    run.subMap = subMap;
+    run.wrongList = wrongList;
+  }
+
+  function answerLine(it){
+    var q = it.q;
+    if(q.type === "single"){
+      var given = (it.given != null) ? it.options[it.given] : null;
+      if(it.correct) return "Deine Antwort: <b>" + given + "</b>";
+      return "Deine Antwort: <b>" + (given != null ? given : "keine Antwort") + "</b> &middot; Richtig w&auml;re: <b>" + q.answer + "</b>";
+    }
+    var rawShown = (it.given != null && String(it.given).trim() !== "") ? esc(String(it.given)) : "keine Antwort";
+    if(it.correct) return "Deine Antwort: <b>" + rawShown + "</b>";
+    return "Deine Antwort: <b>" + rawShown + "</b> &middot; Richtig w&auml;re: <b>" + fmtDe(q.answer) + "</b>";
+  }
+
+  function finishRun(timedOut){
+    if(!RUN) return;
+    stopTimer();
+    RUN.timedOut = !!timedOut;
+    scoreRun(RUN);
+    renderResult();
+    if(typeof window.BK_SIM_WEAK === "function"){
+      try { window.BK_SIM_WEAK(RUN.wrongList); } catch(e){}
+    }
+  }
+
+  function renderResult(){
+    if(!RUN) return;
+    var cls = RUN.pct >= 80 ? "good" : (RUN.pct >= 50 ? "mid" : "bad");
+    var label = RUN.pct >= 80 ? "Sitzt." : (RUN.pct >= 50 ? "Auf einem guten Weg." : "Da ist noch Luft nach oben.");
+    var html = "";
+
+    html += "<div class='scr-h'><span class='eyebrow'>Auswertung &middot; " + esc(RUN.label) + "</span><h1>Dein Ergebnis</h1></div>";
+    if(RUN.timedOut){
+      html += "<p style='color:var(--wrong);font-size:13.5px;margin:-8px 0 14px'>Die Zeit ist abgelaufen &ndash; hier ist deine Auswertung mit allen bisher gegebenen Antworten.</p>";
+    }
+
+    html += "<div class='sim-card sim-score-card'><div class='sim-score " + cls + "'>" +
+      "<span class='sim-score-num'>" + RUN.pct + "&nbsp;%</span>" +
+      "<span class='sim-score-lbl'>" + RUN.correctCount + " von " + RUN.total + " richtig</span></div>" +
+      "<span class='sim-ampel " + cls + "'>" + label + "</span></div>";
+
+    var weakest = weakestTopics(RUN.subMap, 3);
+    if(weakest.length){
+      html += "<div class='sim-card'><div class='sec-lbl' style='margin:0 0 4px'>Deine schw&auml;chsten Themen</div>";
+      for(var w = 0; w < weakest.length; w++){
+        var key = weakest[w], s = RUN.subMap[key];
+        html += "<div class='sim-weak-row'><span>" + esc(key) + "</span><span class='sim-weak-frac'>" + s.correct + "/" + s.total + " &rarr; Kapitel " + s.chapter + "</span></div>";
+      }
+      html += "</div>";
+    }
+
+    html += "<div class='sim-list'>";
+    for(var i = 0; i < RUN.items.length; i++){
+      var it = RUN.items[i], q = it.q;
+      html += "<details class='sim-item " + (it.correct ? "ok" : "bad") + "'>" +
+        "<summary><span class='sim-ic'><svg class='i' style='width:12px'><use href='#i-" + (it.correct ? "check" : "x") + "'/></svg></span>" +
+        "<span class='sim-item-stem'>Frage " + (i + 1) + " &middot; " + esc(q.subtopic || "") + "</span>" +
+        "<svg class='i sim-chev' style='width:15px'><use href='#i-chev'/></svg></summary>" +
+        "<div class='sim-item-body'><div class='sim-stem' style='font-size:15px;margin-bottom:10px'>" + q.stem + "</div>" +
+        "<div class='sim-item-ans'>" + answerLine(it) + "</div>" +
+        "<div>" + q.feedback + "</div></div></details>";
+    }
+    html += "</div>";
+
+    html += "<div class='sim-actions'>" +
+      "<button type='button' class='btn btn-silver btn-block' id='simShare'>Ergebnis teilen</button>" +
+      "<button type='button' class='btn btn-primary btn-block' id='simRepeat'>Nochmal &uuml;ben</button>" +
+      "<button type='button' class='btn btn-ghost btn-sm btn-block' id='simChangeMode'>Anderen Modus w&auml;hlen</button></div>";
+
+    if(!computeFull()){
+      html += "<div class='sim-card sim-buy-card' style='margin-top:14px'><h3>Der vollst&auml;ndige Simulator geh&ouml;rt zum Komplettpaket</h3>" +
+        "<p>Alle Kapitel gemischt, mit echtem Zeitdruck und Marathon-Modus &ndash; im Komplettpaket freigeschaltet.</p>";
+      if(typeof window.BK_SIM_BUY === "function"){
+        html += "<button type='button' class='btn btn-primary btn-block' id='simBuy' style='margin-top:10px'>Komplettpaket ansehen</button>";
+      }
+      html += "</div>";
+    }
+
+    simWrap.innerHTML = html;
+  }
+
+  /* ================= Ergebnis teilen ================= */
+  function doShare(){
+    if(!RUN) return;
+    var url = (typeof window.BK_SIM_SHARE_URL === "string" && window.BK_SIM_SHARE_URL) ? window.BK_SIM_SHARE_URL : (location.origin + "/");
+    var text = "Ich hab gerade " + RUN.correctCount + "/" + RUN.total + " im Klausurchecker-Simulator geschafft 💪 " + url;
+    window.open("https://wa.me/?text=" + encodeURIComponent(text));
+  }
+
+  /* ================= Events (einmalig, delegiert) ================= */
+  simWrap.addEventListener("click", function(e){
+    var el;
+    el = e.target.closest(".sim-mode"); if(el){ startRun(el.getAttribute("data-mode")); return; }
+    el = e.target.closest("#simDemoStart"); if(el){ startRun("demo"); return; }
+    el = e.target.closest(".sim-opt");
+    if(el && RUN){ RUN.items[RUN.idx].given = parseInt(el.getAttribute("data-oi"), 10); renderRun(); return; }
+    el = e.target.closest("#simNext");
+    if(el && RUN){ if(RUN.idx < RUN.items.length - 1){ RUN.idx++; renderRun(); } else { finishRun(false); } return; }
+    el = e.target.closest("#simPrev");
+    if(el && RUN){ if(RUN.idx > 0){ RUN.idx--; renderRun(); } return; }
+    el = e.target.closest("#simQuit");
+    if(el){
+      if(window.confirm("Simulator wirklich verlassen? Dein Fortschritt in diesem Lauf geht verloren.")){ stopTimer(); RUN = null; renderIntro(); }
+      return;
+    }
+    el = e.target.closest("#simRepeat"); if(el){ startRun(LAST_MODE); return; }
+    el = e.target.closest("#simChangeMode"); if(el){ stopTimer(); RUN = null; renderIntro(); return; }
+    el = e.target.closest("#simShare"); if(el){ doShare(); return; }
+    el = e.target.closest("#simBuy"); if(el){ if(typeof window.BK_SIM_BUY === "function") window.BK_SIM_BUY(); return; }
+  });
+  simWrap.addEventListener("input", function(e){
+    if(e.target && e.target.id === "simNumInput" && RUN){ RUN.items[RUN.idx].given = e.target.value; }
+  });
+  simWrap.addEventListener("keydown", function(e){
+    if(e.target && e.target.id === "simNumInput" && e.key === "Enter"){
+      e.preventDefault();
+      var nb = $("simNext"); if(nb) nb.click();
+    }
+  });
+
+  /* ================= Öffentliche Schnittstelle ================= */
+  window.BK_SIM_OPEN = function(){
+    stopTimer();
+    RUN = null;
+    renderIntro();
+  };
+})();
+</script>
+<section id="screen-spick" class="screen"><div class="scr-h"><span class="eyebrow">OSTA</span><h1>Formelsammlung</h1><p>Alle Formeln aus Statistik auf einen Blick</p></div><div class="spick-print-head">Klausurchecker · Statistik · Formelsammlung</div><nav class="spick-jump" aria-label="Kapitel-Sprungleiste"><a class="pill" href="#spick-k1">1</a><a class="pill" href="#spick-k2">2</a><a class="pill" href="#spick-k3">3</a><a class="pill" href="#spick-k4">4</a><a class="pill" href="#spick-k5">5</a><a class="pill" href="#spick-k6">6</a><a class="pill" href="#spick-k7">7</a><a class="pill" href="#spick-k8">8</a><a class="pill" href="#spick-k9">9</a><a class="pill" href="#spick-k10">10</a></nav><button type="button" id="spickPrintBtn" class="btn btn-silver btn-block spick-printbtn">Als PDF drucken / speichern</button><div class="spick-body"><div class="spick-kapitel" id="spick-k1"><h2 class="spick-kh">Kapitel 1 · Deskriptive Statistik I: Lage &amp; Streuung</h2><ul class="spick-formeln"><li class="spick-formel"><span class="spick-fname">Relative Häufigkeit</span><div class="spick-formel-zeile"><code>hj = nj / n</code></div><p class="spick-hinweis">Anteil der Ausprägung aj an allen n Beobachtungen; Summe aller hj = 1. Kumuliert: F(x) = h(X ≤ x).</p></li><li class="spick-formel"><span class="spick-fname">Arithmetisches Mittel</span><div class="spick-formel-zeile"><code>x-quer = (1/n) · Summe xi = Summe aj · hj</code></div><p class="spick-hinweis">Zweite Form direkt aus der Häufigkeitstabelle (gewichtete Summe der Ausprägungen).</p></li><li class="spick-formel"><span class="spick-fname">Median</span><div class="spick-formel-zeile"><code>n ungerade: mittlerer Wert; n gerade: Mittel der beiden mittleren Werte</code></div><p class="spick-hinweis">Vorher sortieren! Robust gegenüber Ausreißern.</p></li><li class="spick-formel"><span class="spick-fname">Varianz (Verschiebungssatz)</span><div class="spick-formel-zeile"><code>d² = (1/n) · Summe (xi - x-quer)² = (1/n) · Summe xi² - (x-quer)²</code></div><p class="spick-hinweis">Mittel der Quadrate minus Quadrat des Mittels – der Rechen-Turbo der Klausur.</p></li><li class="spick-formel"><span class="spick-fname">Standardabweichung</span><div class="spick-formel-zeile"><code>d = Wurzel aus d²</code></div><p class="spick-hinweis">Gleiche Einheit wie die Daten – die interpretierbare Streuungsgröße.</p></li><li class="spick-formel"><span class="spick-fname">Lineartransformation</span><div class="spick-formel-zeile"><code>y = a + b·x  →  y-quer = a + b·x-quer,  d²(y) = b² · d²(x)</code></div><p class="spick-hinweis">Verschieben (a) ändert die Streuung nicht, der Faktor b wirkt quadratisch.</p></li></ul><p class="spick-merke"><b>Merke:</b> Verschiebungssatz heißt "Mittel der Quadrate minus Quadrat des Mittels" – nie gliedweise quadrieren, denn (a+b)² ist NICHT a²+b². Und beim Ausreißer gilt: Das Mittel wandert mit…</p></div><div class="spick-kapitel" id="spick-k2"><h2 class="spick-kh">Kapitel 2 · Deskriptive Statistik II: Zusammenhang &amp; Regression</h2><ul class="spick-formeln"><li class="spick-formel"><span class="spick-fname">Kovarianz (Verschiebungssatz)</span><div class="spick-formel-zeile"><code>dxy = (1/n)·Σ(xi - x-quer)·(yi - y-quer) = (1/n)·Σ xi·yi - x-quer·y-quer</code></div><p class="spick-hinweis">Mittel der Produkte minus Produkt der Mittel – Schwester-Rezept zur Varianz dx² = (1/n)·Σ xi² - x-quer².</p></li><li class="spick-formel"><span class="spick-fname">Korrelationskoeffizient (Bravais-Pearson)</span><div class="spick-formel-zeile"><code>rxy = dxy / √(dx² · dy²)      mit  -1 ≤ rxy ≤ +1</code></div><p class="spick-hinweis">Dimensionslos; Vorzeichen = Richtung, Betrag = Stärke des linearen Zusammenhangs.</p></li><li class="spick-formel"><span class="spick-fname">KQ-Regressionsgerade</span><div class="spick-formel-zeile"><code>b^ = dxy / dx²      a^ = y-quer - b^·x-quer      y^ = a^ + b^·x</code></div><p class="spick-hinweis">^ = Dach (KQ-Schätzer). Merk-Kette: dxy → rxy → b^ (es gilt auch b^ = rxy·dy/dx).</p></li><li class="spick-formel"><span class="spick-fname">Bestimmtheitsmaß</span><div class="spick-formel-zeile"><code>R² = rxy² = 1 - Σε² / (n·dy²)      mit  0 ≤ R² ≤ 1</code></div><p class="spick-hinweis">ε = Residuum yi - y^i. Beide Rechenwege müssen dasselbe R² liefern – idealer Selbst-Check in der Klausur.</p></li></ul><p class="spick-merke"><b>Merke:</b> Die Klausur-Kette lautet dxy → rxy → b^ → R²: Die Kovarianz liefert die Richtung, normiert wird sie zur Korrelation (Stärke), skaliert zur KQ-Steigung (Prognose), quadriert zum…</p></div><div class="spick-kapitel" id="spick-k3"><h2 class="spick-kh">Kapitel 3 · Wahrscheinlichkeitsrechnung</h2><ul class="spick-formeln"><li class="spick-formel"><span class="spick-fname">Laplace-Wahrscheinlichkeit</span><div class="spick-formel-zeile"><code>P(A) = günstige Ergebnisse / mögliche Ergebnisse</code></div><p class="spick-hinweis">Nur bei gleich wahrscheinlichen Ergebnissen. Stets gilt 0 ≤ P(A) ≤ 1.</p></li><li class="spick-formel"><span class="spick-fname">Additionssatz</span><div class="spick-formel-zeile"><code>P(A oder B) = P(A) + P(B) - P(A und B)</code></div><p class="spick-hinweis">Schnitt abziehen – sonst wird er doppelt gezählt.</p></li><li class="spick-formel"><span class="spick-fname">Komplement &amp; De Morgan</span><div class="spick-formel-zeile"><code>P(nicht A) = 1 - P(A);   P(weder A noch B) = 1 - P(A oder B)</code></div><p class="spick-hinweis">"Weder noch" ist das Komplement der Vereinigung.</p></li><li class="spick-formel"><span class="spick-fname">Bedingte Wahrscheinlichkeit</span><div class="spick-formel-zeile"><code>P(A|B) = P(A und B) / P(B)</code></div><p class="spick-hinweis">Ergebnisraum schrumpft auf B. Achtung: P(A|B) ≠ P(B|A) – gleicher Zähler, verschiedene Nenner.</p></li><li class="spick-formel"><span class="spick-fname">Multiplikationssatz &amp; Unabhängigkeit</span><div class="spick-formel-zeile"><code>P(A und B) = P(A|B) · P(B) = P(B|A) · P(A);   bei Unabhängigkeit: P(A und B) = P(A) · P(B)</code></div><p class="spick-hinweis">Die kurze Produktform gilt NUR bei stochastischer Unabhängigkeit.</p></li><li class="spick-formel"><span class="spick-fname">Totale Wahrscheinlichkeit &amp; Satz von Bayes</span><div class="spick-formel-zeile"><code>P(B) = Summe P(B|Ai) · P(Ai);   P(A|B) = P(B|A) · P(A) / P(B)</code></div><p class="spick-hinweis">Bayes dreht die Bedingung um – von der bekannten Richtung P(B|A) zur gesuchten P(A|B).</p></li></ul><p class="spick-merke"><b>Merke:</b> UND heißt multiplizieren, ODER heißt addieren – aber P(A|B) ist NICHT P(B|A): gleicher Zähler P(A und B), verschiedene Nenner. Und: Disjunkt (P(A und B) = 0) ist NICHT unabhängig…</p></div><div class="spick-kapitel" id="spick-k4"><h2 class="spick-kh">Kapitel 4 · Zufallsvariablen</h2><ul class="spick-formeln"><li class="spick-formel"><span class="spick-fname">Erwartungswert (diskret)</span><div class="spick-formel-zeile"><code>E(X) = μ = Summe pi · ai</code></div><p class="spick-hinweis">Jeden Wert ai mit seiner Wahrscheinlichkeit pi gewichten und aufsummieren - der Schwerpunkt der Verteilung.</p></li><li class="spick-formel"><span class="spick-fname">Varianz (diskret)</span><div class="spick-formel-zeile"><code>Var(X) = σ² = Summe pi · (ai - E(X))²</code></div><p class="spick-hinweis">Gewichteter Durchschnitt der quadrierten Abweichungen; Standardabweichung σ = Wurzel aus Var(X).</p></li><li class="spick-formel"><span class="spick-fname">Verschiebungssatz</span><div class="spick-formel-zeile"><code>Var(X) = E(X²) - [E(X)]²   mit   E(X²) = Summe pi · ai²</code></div><p class="spick-hinweis">Nur zwei Summen noetig statt aller Abweichungsquadrate - gilt diskret wie stetig.</p></li><li class="spick-formel"><span class="spick-fname">Stetiger Fall (Dichte)</span><div class="spick-formel-zeile"><code>E(X) = Integral x · f(x) dx,   Var(X) = Integral x² · f(x) dx - [E(X)]²</code></div><p class="spick-hinweis">Summe → Integral; die Gesamtflaeche unter f(x) ist 1, und P(X = a) = 0.</p></li><li class="spick-formel"><span class="spick-fname">Verteilungsfunktion</span><div class="spick-formel-zeile"><code>F(x) = P(X ≤ x),   P(a ≤ X ≤ b) = F(b) - F(a),   f(x) = F'(x)</code></div><p class="spick-hinweis">F entsteht durch Integrieren der Dichte f; Ableiten von F liefert f zurueck.</p></li><li class="spick-formel"><span class="spick-fname">Rechenregeln E / Var</span><div class="spick-formel-zeile"><code>E(aX + b) = a·E(X) + b,   Var(aX + b) = a²·Var(X),   Var(X ± Y) = Var(X) + Var(Y) bei Unabhaengigkeit</code></div><p class="spick-hinweis">Konstante b verschiebt nur den Erwartungswert; auf die Varianz wirkt der Faktor a quadratisch.</p></li></ul><p class="spick-merke"><b>Merke:</b> Verschiebungssatz Var(X) = E(X²) - [E(X)]²: erst quadrieren, dann mitteln ist NICHT dasselbe wie erst mitteln, dann quadrieren. Und im stetigen Fall ist Wahrscheinlichkeit Flaeche…</p></div><div class="spick-kapitel" id="spick-k5"><h2 class="spick-kh">Kapitel 5 · Verteilungsmodelle: Binomial &amp; Poisson</h2><ul class="spick-formeln"><li class="spick-formel"><span class="spick-fname">Bernoulli-Experiment Be(p)</span><div class="spick-formel-zeile"><code>P(Xi = 1) = p;   P(Xi = 0) = 1 - p;   E(Xi) = p;   Var(Xi) = p · (1 - p)</code></div><p class="spick-hinweis">Ein Versuch, zwei Ausgänge – der Grundbaustein der Binomialverteilung.</p></li><li class="spick-formel"><span class="spick-fname">Binomialverteilung Bi(n, p)</span><div class="spick-formel-zeile"><code>f(x) = (n über x) · p^x · (1 - p)^(n-x);   E(X) = n · p;   Var(X) = n · p · (1 - p)</code></div><p class="spick-hinweis">(n über x) = n! / (x! · (n - x)!) zählt die Anordnungen der x Treffer.</p></li><li class="spick-formel"><span class="spick-fname">Tabelle A (Klausur-Grundmuster)</span><div class="spick-formel-zeile"><code>P(X &gt; x) = 1 - F(x);   P(a ≤ X ≤ b) = F(b) - F(a - 1);   bei p &gt; 0,5: F(x; n, p) = 1 - F(n - x - 1; n, 1 - p)</code></div><p class="spick-hinweis">Tabelle A ist nur für p ≤ 0,5 vertafelt – bei p &gt; 0,5 mit 1 - p rechnen.</p></li><li class="spick-formel"><span class="spick-fname">Poisson-Verteilung Po(λ)</span><div class="spick-formel-zeile"><code>f(x|λ) = e^(-λ) · λ^x / x!;   E(X) = Var(X) = λ</code></div><p class="spick-hinweis">λ = mittlere Ereigniszahl im Intervall; skaliert mit der Intervalllänge (k Wochen → k · λ).</p></li><li class="spick-formel"><span class="spick-fname">Poisson-Approximation</span><div class="spick-formel-zeile"><code>Bi(n, p) ≈ Po(λ = n · p);   Faustregel: n ≥ 100 und p ≤ 0,05</code></div><p class="spick-hinweis">Grenzprozess: n → unendlich, p → 0, λ = n · p konstant – großes n, kleines p (seltene Ereignisse).</p></li><li class="spick-formel"><span class="spick-fname">Diskrete Gleichverteilung DG(k)</span><div class="spick-formel-zeile"><code>f(x) = 1/k für x = 1, …, k;   E(X) = (k + 1)/2;   Var(X) = (k² - 1)/12</code></div><p class="spick-hinweis">k gleich wahrscheinliche Ausgänge; F(x) = x/k für x = 1, …, k.</p></li></ul><p class="spick-merke"><b>Merke:</b> Erst das Zählmuster erkennen, dann rechnen: festes n mit Trefferchance p → Binomialverteilung (E = n · p, Var = n · p · (1 - p)); seltene Ereignisse pro Zeitraum →…</p></div><div class="spick-kapitel" id="spick-k6"><h2 class="spick-kh">Kapitel 6 · Normalverteilung &amp; Stichprobenmittel</h2><ul class="spick-formeln"><li class="spick-formel"><span class="spick-fname">Standardisieren (Tab. C)</span><div class="spick-formel-zeile"><code>z = (x - μ)/σ;   P(X ≤ x) = Φ(z);   Φ(-z) = 1 - Φ(z)</code></div><p class="spick-hinweis">Der z-Wert misst den Abstand zu μ in Vielfachen von σ; Tab. C vertafelt nur positive z.</p></li><li class="spick-formel"><span class="spick-fname">Rechenregeln</span><div class="spick-formel-zeile"><code>P(X &gt; x) = 1 - Φ(z);   P(a ≤ X ≤ b) = Φ(z_b) - Φ(z_a)</code></div><p class="spick-hinweis">Immer erst standardisieren, dann ablesen – große Fläche minus kleine Fläche.</p></li><li class="spick-formel"><span class="spick-fname">Quantil / Destandardisieren (Tab. D)</span><div class="spick-formel-zeile"><code>x_p = μ + z_p · σ</code></div><p class="spick-hinweis">x_p wird mit Wahrscheinlichkeit p unterschritten. Tab. D: z_0,80 = 0,8416; z_0,90 = 1,2816; z_0,95 = 1,6449; z_0,975 = 1,96.</p></li><li class="spick-formel"><span class="spick-fname">Zentrales Schwankungsintervall</span><div class="spick-formel-zeile"><code>ZSI zum Niveau 1 - α:   [μ ± z_(1-α/2) · σ]</code></div><p class="spick-hinweis">α verteilt sich je zur Hälfte auf beide Ränder – deshalb z_(1-α/2), nicht z_(1-α).</p></li><li class="spick-formel"><span class="spick-fname">Summe &amp; Stichprobenmittel</span><div class="spick-formel-zeile"><code>ΣXi ~ N(n·μ; n·σ²);   X-quer ~ N(μ; σ²/n);   Standardfehler: σ/Wurzel(n)</code></div><p class="spick-hinweis">Standardisieren des Mittels: z = (x-quer - μ)/(σ/Wurzel(n)).</p></li></ul><p class="spick-merke"><b>Merke:</b> Ein Handgriff trägt durch das ganze Kapitel: standardisieren (Wert → z → Φ ablesen) bzw. destandardisieren (Anteil → z_p → x_p = μ + z_p · σ). Beim Stichprobenmittel gilt exakt…</p></div><div class="spick-kapitel" id="spick-k7"><h2 class="spick-kh">Kapitel 7 · Schätzen: Punktschätzer &amp; Maximum Likelihood</h2><ul class="spick-formeln"><li class="spick-formel"><span class="spick-fname">Schätzfunktion &amp; Stichprobenmittel</span><div class="spick-formel-zeile"><code>θ^ = g(X1; ...; Xn);   μ^ = X-quer = (1/n) · Summe der Xi</code></div><p class="spick-hinweis">Der Schätzer ist selbst eine Zufallsvariable – deshalb kann man E(θ^) und Var(θ^) untersuchen.</p></li><li class="spick-formel"><span class="spick-fname">Bausteine aus dem ZGW (Kapitel 6)</span><div class="spick-formel-zeile"><code>E(X-quer) = μ;   Var(X-quer) = σ²/n;   Standardfehler = σ/Wurzel(n)</code></div><p class="spick-hinweis">Für großes n (Faustregel n ≥ 30) ist X-quer näherungsweise normalverteilt.</p></li><li class="spick-formel"><span class="spick-fname">Bias &amp; Erwartungstreue</span><div class="spick-formel-zeile"><code>b(μ^) = E(μ^) - μ;   erwartungstreu: E(μ^) = μ, also Bias = 0</code></div></li><li class="spick-formel"><span class="spick-fname">Konsistenz</span><div class="spick-formel-zeile"><code>lim E(μ^) = μ  und  lim Var(μ^) = 0  (für n → unendlich)</code></div><p class="spick-hinweis">Zwei Bedingungen zugleich: Der systematische UND der zufällige Fehler verschwinden.</p></li><li class="spick-formel"><span class="spick-fname">Mittlerer quadratischer Fehler</span><div class="spick-formel-zeile"><code>MQF(μ^) = Bias² + Var(μ^)</code></div><p class="spick-hinweis">Bei Erwartungstreue gilt MQF = Varianz – die Effizienz entscheidet dann der Varianzvergleich.</p></li><li class="spick-formel"><span class="spick-fname">Maximum Likelihood</span><div class="spick-formel-zeile"><code>L(θ) = f(x1|θ) · ... · f(xn|θ);   ln L ableiten, nullsetzen → θ^_ML;   Exponentialverteilung: λ^_ML = 1/x-quer</code></div><p class="spick-hinweis">Momentenmethode: E(X) = x-quer setzen und auflösen – bei der Exponentialverteilung ebenfalls 1/x-quer.</p></li></ul><p class="spick-merke"><b>Merke:</b> Erst die Güte, dann das Rezept: Ein guter Schätzer trifft im Mittel (Bias = 0) und wird mit mehr Daten immer besser (Konsistenz) – verglichen wird über den MQF = Bias² + Varianz…</p></div><div class="spick-kapitel" id="spick-k8"><h2 class="spick-kh">Kapitel 8 · Konfidenzintervalle</h2><ul class="spick-formeln"><li class="spick-formel"><span class="spick-fname">Fall A: σ bekannt</span><div class="spick-formel-zeile"><code>KI_(1-α) = [x-quer ± z_(1-α/2) · σ/Wurzel(n)]</code></div><p class="spick-hinweis">Tab. D: z_0,95 = 1,6449; z_0,975 = 1,96; z_0,995 = 2,5758.</p></li><li class="spick-formel"><span class="spick-fname">Fall B: σ unbekannt, n &lt; 30</span><div class="spick-formel-zeile"><code>KI_(1-α) = [x-quer ± t_(1-α/2)(n-1) · S/Wurzel(n)]</code></div><p class="spick-hinweis">Freiheitsgrade n - 1 (Tab. E), z. B. t_0,975(15) = 2,1314; S² = 1/(n-1) · Σ(xi - x-quer)².</p></li><li class="spick-formel"><span class="spick-fname">Fall C: große Stichprobe (n &gt; 30)</span><div class="spick-formel-zeile"><code>KI_(1-α) = [x-quer ± z_(1-α/2) · S/Wurzel(n)]</code></div><p class="spick-hinweis">Zentraler Grenzwertsatz: Bei großem n wieder z-Quantile, auch wenn σ durch S geschätzt wird.</p></li><li class="spick-formel"><span class="spick-fname">Intervalllänge (Fall A)</span><div class="spick-formel-zeile"><code>L = 2 · z_(1-α/2) · σ/Wurzel(n)</code></div><p class="spick-hinweis">Höheres Niveau → länger; mehr Daten → kürzer, aber nur mit Wurzel(n).</p></li><li class="spick-formel"><span class="spick-fname">Notwendiger Stichprobenumfang</span><div class="spick-formel-zeile"><code>n ≥ (2 · z_(1-α/2) · σ / L)²</code></div><p class="spick-hinweis">Immer auf die nächstgrößere ganze Zahl aufrunden – Abrunden verletzt die geforderte Höchstlänge.</p></li></ul><p class="spick-merke"><b>Merke:</b> Zufällig sind die Grenzen, nicht μ: '95 %' meint die Häufigkeitsdeutung – bei vielen Wiederholungen überdecken rund 95 % der Intervalle den wahren Wert. Das Quantil folgt der…</p></div><div class="spick-kapitel" id="spick-k9"><h2 class="spick-kh">Kapitel 9 · Testen I: Testprinzip &amp; Gauß-Test</h2><ul class="spick-formeln"><li class="spick-formel"><span class="spick-fname">Gauß-Test (Fall A: σ bekannt)</span><div class="spick-formel-zeile"><code>Z = (x-quer - μ0) / (σ/Wurzel(n))</code></div><p class="spick-hinweis">Unter H0 standardnormalverteilt; σ/Wurzel(n) ist der Standardfehler des Stichprobenmittels.</p></li><li class="spick-formel"><span class="spick-fname">Ablehnbereiche</span><div class="spick-formel-zeile"><code>beidseitig: |Z| &gt; z(1-α/2);   rechtsseitig: Z &gt; z(1-α);   linksseitig: Z &lt; -z(1-α)</code></div><p class="spick-hinweis">Beidseitig teilt sich α auf beide Ränder auf (je α/2), einseitig liegt die gesamte Fläche α an einem Rand.</p></li><li class="spick-formel"><span class="spick-fname">Klausur-Quantile (Tab. D)</span><div class="spick-formel-zeile"><code>z0,90 = 1,2816;   z0,95 = 1,6449;   z0,975 = 1,96;   z0,99 = 2,3263;   z0,995 = 2,5758</code></div><p class="spick-hinweis">α = 0,05: beidseitig 1,96, einseitig 1,6449. α = 0,01: beidseitig 2,5758, einseitig 2,3263.</p></li><li class="spick-formel"><span class="spick-fname">p-Wert</span><div class="spick-formel-zeile"><code>beidseitig: p = 2 · (1 - Φ(|z|));   rechtsseitig: p = 1 - Φ(z);   Regel: p &lt; α → H0 verwerfen</code></div><p class="spick-hinweis">Kleinste Irrtumswahrscheinlichkeit, bei der die Daten H0 gerade noch kippen – nicht die Wahrscheinlichkeit, dass H0 wahr ist.</p></li><li class="spick-formel"><span class="spick-fname">Anteilstest (großes n)</span><div class="spick-formel-zeile"><code>Z = (p^ - p0) / Wurzel(p^ · (1 - p^)/n)</code></div><p class="spick-hinweis">p^ = Anteil in der Stichprobe; entschieden wird wieder über die z-Quantile.</p></li></ul><p class="spick-merke"><b>Merke:</b> Jeder Test ist dasselbe 4-Schritte-Schema: Hypothesen → Ablehnbereich → Teststatistik → Testentscheidung. Was du zeigen willst, gehört in H1 – H0 kann nur beibehalten oder…</p></div><div class="spick-kapitel" id="spick-k10"><h2 class="spick-kh">Kapitel 10 · Testen II: t-Test &amp; Chi-Quadrat</h2><ul class="spick-formeln"><li class="spick-formel"><span class="spick-fname">Korrigierte Stichprobenvarianz</span><div class="spick-formel-zeile"><code>S² = 1/(n-1) · Σ(xi - x-quer)² = n/(n-1) · dx²</code></div><p class="spick-hinweis">Erwartungstreuer Schätzer für σ²; dx² = mittlere quadratische Abweichung. Nenner n - 1, weil μ durch x-quer geschätzt wurde.</p></li><li class="spick-formel"><span class="spick-fname">Einstichproben-t-Test</span><div class="spick-formel-zeile"><code>T = (x-quer - μ0) / (S/Wurzel(n)),   T ~ t(n-1)</code></div><p class="spick-hinweis">Zweiseitig ablehnen, falls |T| &gt; t_(1-α/2)(n-1) (Tab. E). Ab n &gt; 30 näherungsweise z-Quantile (Tab. D).</p></li><li class="spick-formel"><span class="spick-fname">χ²-Anpassungstest</span><div class="spick-formel-zeile"><code>χ² = Σ (ni - ni(0))² / ni(0)   mit   ni(0) = n · pi(0)</code></div><p class="spick-hinweis">ν = k - m - 1 (m = geschätzte Parameter). Alle ni(0) ≥ 5, sonst Klassen zusammenfassen. Ablehnen, falls χ² &gt; χ²_(1-α)(ν) (Tab. F).</p></li><li class="spick-formel"><span class="spick-fname">χ²-Unabhängigkeitstest</span><div class="spick-formel-zeile"><code>χ² = ΣΣ (nij - ñij)² / ñij   mit   ñij = ni. · n.j / n</code></div><p class="spick-hinweis">ν = (k-1) · (l-1); Voraussetzungen: n &gt; 50 und alle ñij &gt; 5. Ablehnen nur rechts (Tab. F).</p></li><li class="spick-formel"><span class="spick-fname">Kritische Werte (Auswahl)</span><div class="spick-formel-zeile"><code>t_0,975(8) = 2,306 · t_0,975(15) = 2,1314 · χ²_0,95(1) = 3,841 · χ²_0,95(3) = 7,815 · χ²_0,95(4) = 9,488 · χ²_0,95(5) = 11,07</code></div><p class="spick-hinweis">Zum Vergleich: z_0,975 = 1,96 – t-Quantile liegen stets darüber.</p></li></ul><p class="spick-merke"><b>Merke:</b> Erst fragen: WAS wird geprüft? Mittelwert → z- oder t-Test (σ bekannt → z, Tab. D; σ unbekannt und n klein → t mit n - 1 Freiheitsgraden, Tab. E) · Verteilungsform →…</p></div></div></section>
+<style id="spickStyle">
+#screen-spick{--spick-mono:ui-monospace,"SF Mono",Consolas,"Liberation Mono",Menlo,monospace}
+#screen-spick .spick-print-head{display:none}
+#screen-spick .spick-jump{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+#screen-spick .spick-jump .pill{padding:10px 14px;min-height:44px;font-size:13px;cursor:pointer}
+#screen-spick .spick-printbtn{margin:0 0 22px}
+#screen-spick .spick-body{display:flex;flex-direction:column;gap:14px}
+#screen-spick .spick-kapitel{background:var(--surface);border:1px solid var(--line-2);border-radius:16px;padding:16px 16px 14px;box-shadow:var(--sh-1);scroll-margin-top:74px}
+#screen-spick .spick-kh{font-family:var(--serif);font-weight:600;font-size:17px;color:var(--text);margin-bottom:10px;overflow-wrap:anywhere}
+#screen-spick .spick-formeln{list-style:none;display:flex;flex-direction:column;gap:12px}
+#screen-spick .spick-formel{padding-bottom:12px;border-bottom:1px solid var(--hair)}
+#screen-spick .spick-formel:last-child{padding-bottom:0;border-bottom:none}
+#screen-spick .spick-fname{display:block;font-weight:700;font-size:14px;color:var(--text);margin-bottom:5px;overflow-wrap:anywhere}
+#screen-spick .spick-formel-zeile{overflow-x:auto;-webkit-overflow-scrolling:touch}
+#screen-spick .spick-formel-zeile code{display:inline-block;min-width:100%;box-sizing:border-box;font-family:var(--spick-mono);font-size:13.5px;line-height:1.5;color:var(--accent-deep);background:var(--surface-2);border:1px solid var(--line-2);border-radius:8px;padding:7px 10px;white-space:pre-wrap;overflow-wrap:anywhere}
+#screen-spick .spick-hinweis{margin-top:5px;font-size:12px;color:var(--text-2);overflow-wrap:anywhere}
+#screen-spick .spick-merke{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line-2);font-size:12.5px;color:var(--text-2);overflow-wrap:anywhere}
+#screen-spick .spick-merke b{color:var(--text)}
+#screen-spick .spick-empty{font-size:13px;color:var(--text-3);font-style:italic}
+
+@media print{
+  body *{visibility:hidden!important}
+  #screen-spick,#screen-spick *{visibility:visible!important}
+  #screen-spick{display:block!important;position:absolute!important;left:0;top:0;width:100%;margin:0;padding:0;background:#fff!important;color:#000!important}
+  #screen-spick .scr-h,#screen-spick .spick-jump,#screen-spick .spick-printbtn{display:none!important}
+  #screen-spick .spick-print-head{display:block!important;font-family:var(--sans),Arial,sans-serif;font-size:9pt;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#000!important;border-bottom:1px solid #000;padding-bottom:3mm;margin-bottom:4mm}
+  #screen-spick .spick-body{display:block;column-count:2;column-gap:8mm}
+  #screen-spick .spick-kapitel{background:#fff!important;border:1px solid #000!important;box-shadow:none!important;border-radius:0;padding:2mm 3mm;margin:0 0 3mm;break-inside:avoid;page-break-inside:avoid}
+  #screen-spick .spick-kh{font-size:9.5pt;color:#000!important;margin-bottom:2mm}
+  #screen-spick .spick-formeln{gap:2mm}
+  #screen-spick .spick-formel{padding-bottom:1.5mm;border-bottom:.2mm solid #000}
+  #screen-spick .spick-fname{font-size:9pt;color:#000!important;margin-bottom:1mm}
+  #screen-spick .spick-formel-zeile code{font-size:8.5pt;line-height:1.35;color:#000!important;background:none!important;border:.2mm solid #000!important;border-radius:0;padding:1mm 1.5mm}
+  #screen-spick .spick-hinweis{font-size:7.5pt;color:#222!important;margin-top:1mm}
+  #screen-spick .spick-merke{font-size:8pt;color:#000!important;border-top:.2mm solid #000;margin-top:2mm;padding-top:1.5mm}
+  #screen-spick .spick-merke b{color:#000!important}
+  #screen-spick .spick-empty{color:#000!important}
+  @page{margin:10mm 8mm}
+}
+</style>
+<script id="spickCore">
+(function(){
+  var btn = document.getElementById('spickPrintBtn');
+  if(btn){
+    btn.addEventListener('click', function(){
+      window.print();
+    });
+  }
+})();
+</script>
+<section id="screen-plan" class="screen"><div class="scr-h"><span class="eyebrow">OSTA</span><h1>Notfallplan bis zur Klausur</h1><p>Dein Rückwärtsplan für Statistik – realistisch statt hoffnungsvoll gerechnet, ab jetzt bis zur Klausur.</p></div><script id="planData" type="application/json">{
+  "fach": "OSTA",
+  "klausur": "2026-07-28T11:00",
+  "summe_min": 890,
+  "kapitel": [
+    {
+      "n": 1,
+      "titel": "Deskriptive Statistik I: Lage & Streuung",
+      "min": 90,
+      "min_von": 70,
+      "min_bis": 115,
+      "basis": {
+        "woerter": 2331,
+        "fragen": 10,
+        "aufgaben": 17
+      }
+    },
+    {
+      "n": 2,
+      "titel": "Deskriptive Statistik II: Zusammenhang & Regression",
+      "min": 80,
+      "min_von": 65,
+      "min_bis": 105,
+      "basis": {
+        "woerter": 2385,
+        "fragen": 10,
+        "aufgaben": 14
+      }
+    },
+    {
+      "n": 3,
+      "titel": "Wahrscheinlichkeitsrechnung",
+      "min": 80,
+      "min_von": 65,
+      "min_bis": 105,
+      "basis": {
+        "woerter": 1956,
+        "fragen": 0,
+        "aufgaben": 17
+      }
+    },
+    {
+      "n": 4,
+      "titel": "Zufallsvariablen",
+      "min": 85,
+      "min_von": 70,
+      "min_bis": 110,
+      "basis": {
+        "woerter": 2240,
+        "fragen": 0,
+        "aufgaben": 18
+      }
+    },
+    {
+      "n": 5,
+      "titel": "Verteilungsmodelle: Binomial & Poisson",
+      "min": 85,
+      "min_von": 70,
+      "min_bis": 110,
+      "basis": {
+        "woerter": 2541,
+        "fragen": 10,
+        "aufgaben": 15
+      }
+    },
+    {
+      "n": 6,
+      "titel": "Normalverteilung & Stichprobenmittel",
+      "min": 90,
+      "min_von": 70,
+      "min_bis": 115,
+      "basis": {
+        "woerter": 2477,
+        "fragen": 10,
+        "aufgaben": 16
+      }
+    },
+    {
+      "n": 7,
+      "titel": "Schätzen: Punktschätzer & Maximum Likelihood",
+      "min": 95,
+      "min_von": 75,
+      "min_bis": 125,
+      "basis": {
+        "woerter": 2618,
+        "fragen": 10,
+        "aufgaben": 17
+      }
+    },
+    {
+      "n": 8,
+      "titel": "Konfidenzintervalle",
+      "min": 95,
+      "min_von": 75,
+      "min_bis": 125,
+      "basis": {
+        "woerter": 2759,
+        "fragen": 10,
+        "aufgaben": 17
+      }
+    },
+    {
+      "n": 9,
+      "titel": "Testen I: Testprinzip & Gauß-Test",
+      "min": 95,
+      "min_von": 75,
+      "min_bis": 125,
+      "basis": {
+        "woerter": 2674,
+        "fragen": 10,
+        "aufgaben": 18
+      }
+    },
+    {
+      "n": 10,
+      "titel": "Testen II: t-Test & Chi-Quadrat",
+      "min": 95,
+      "min_von": 75,
+      "min_bis": 125,
+      "basis": {
+        "woerter": 2758,
+        "fragen": 10,
+        "aufgaben": 17
+      }
+    }
+  ]
+}</script><p class="plan-fallback" id="planFallback" hidden>Für diesen Plan fehlt ein gültiges Klausurdatum. Sprich uns kurz an, dann tragen wir es nach.</p><div class="plan-live" id="planLive"><div class="plan-countdown" id="planCountdown"><span class="plan-cd-label">Noch bis zur Klausur</span><span class="plan-cd-value" id="planCountdownValue">wird berechnet …</span></div><p class="plan-honest" id="planHonest"></p><div class="plan-timeline" id="planTimeline"></div><div class="plan-optional" id="planOptional" hidden><p class="plan-sec-lbl">Optional, falls Zeit bleibt</p><ul class="plan-optlist" id="planOptList"></ul></div></div><div class="plan-done" id="planDone" hidden><div class="plan-donecard"><h2>Die Klausur ist geschrieben.</h2><p>Jetzt erst mal durchatmen – das Lernen ist getan, der Rest liegt nicht mehr in deiner Hand.</p><p>10&nbsp;€ Cashback für dein Feedback: Schreib uns kurz, wie die Vorbereitung war.</p></div></div></section>
+<style id="planStyle">
+#screen-plan .plan-countdown{background:var(--surface);border:1px solid var(--line-2);border-radius:16px;padding:18px;text-align:center;box-shadow:var(--sh-1);margin-bottom:16px}
+#screen-plan .plan-cd-label{display:block;font-family:var(--sans);font-weight:600;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px}
+#screen-plan .plan-cd-value{display:block;font-family:var(--serif);font-weight:600;font-size:26px;color:var(--text)}
+#screen-plan .plan-cd-value.is-urgent{color:var(--wrong)}
+#screen-plan .plan-honest{font-size:13px;line-height:1.5;color:var(--text-2);background:var(--surface-2);border:1px solid var(--line-2);border-radius:12px;padding:12px 14px;margin-bottom:18px;overflow-wrap:anywhere}
+#screen-plan .plan-sec-lbl{font-family:var(--sans);font-weight:600;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);margin:22px 2px 10px}
+#screen-plan .plan-timeline{display:flex;flex-direction:column;gap:10px}
+#screen-plan .plan-item{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line-2);border-radius:14px;padding:11px 12px;box-shadow:var(--sh-1)}
+#screen-plan .plan-item.is-reserved{border-style:dashed}
+#screen-plan .plan-item.is-sim{border-color:var(--accent-deep)}
+#screen-plan .plan-item.is-done{background:var(--done-bg);border-color:transparent}
+#screen-plan .plan-time{flex:none;width:82px;font-family:var(--sans);font-weight:600;font-size:11.5px;line-height:1.35;color:var(--text-2);overflow-wrap:anywhere}
+#screen-plan .plan-main{flex:1;min-width:0}
+#screen-plan .plan-title{display:block;font-size:14px;font-weight:600;color:var(--text);overflow-wrap:anywhere}
+#screen-plan .plan-sub{display:block;font-size:11.5px;color:var(--text-3);margin-top:2px}
+#screen-plan .plan-check{flex:none;width:44px;height:44px;min-height:44px;border-radius:12px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--text-2);display:grid;place-items:center;cursor:pointer;font-size:16px;font-family:inherit}
+#screen-plan .plan-check.is-checked{background:var(--done);border-color:var(--done);color:#fff}
+#screen-plan .plan-optional{margin-top:4px}
+#screen-plan .plan-optlist{list-style:none;display:flex;flex-direction:column;gap:8px}
+#screen-plan .plan-optlist li{background:var(--surface-2);border:1px dashed var(--line-2);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--text-2);display:flex;align-items:center;justify-content:space-between;gap:8px}
+#screen-plan .plan-optlist .pill{flex:none}
+#screen-plan .plan-donecard{background:var(--surface);border:1px solid var(--line-2);border-radius:18px;padding:26px 20px;text-align:center;box-shadow:var(--sh-2)}
+#screen-plan .plan-donecard h2{font-family:var(--serif);font-size:20px;color:var(--text);margin-bottom:12px}
+#screen-plan .plan-donecard p{font-size:14px;line-height:1.55;color:var(--text-2);margin-top:10px}
+#screen-plan .plan-fallback{font-size:13px;color:var(--text-2);padding:14px 2px}
+@media (max-width:340px){
+  #screen-plan .plan-time{width:70px;font-size:11px}
+}
+</style>
+<script id="planCore">
+(function(){
+  'use strict';
+
+  var WD = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+  var WIN_START = 8, WIN_END = 22;      // Lernfenster
+  var WACH_START = 7, WACH_END = 23;    // Annahme (Doku Punkt 3): weiter als das Lernfenster
+  var MAX_BLOCK = 90, BREAK_MIN = 15, MIN_SLIVER = 10;
+  var RESERVED_MS = 2 * 60 * 60 * 1000;
+  var SIM_MIN = 45;
+
+  function pad2(n){
+    n = Math.floor(n);
+    return (n < 10 ? '0' : '') + n;
+  }
+
+  function sameDay(a, b){
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+
+  function parseLocalDateTime(str){
+    if(!str || typeof str !== 'string'){ return null; }
+    var m = str.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if(!m){ return null; }
+    var d = new Date(
+      parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10),
+      parseInt(m[4], 10), parseInt(m[5], 10), 0, 0
+    );
+    if(isNaN(d.getTime())){ return null; }
+    return d;
+  }
+
+  function roundUpMinutes(d, step){
+    var ms = d.getTime();
+    var stepMs = step * 60000;
+    var rem = ms % stepMs;
+    if(rem === 0){ return new Date(ms); }
+    return new Date(ms + (stepMs - rem));
+  }
+
+  function clampWindow(d, startH, endH){
+    var t = new Date(d.getTime());
+    if(t.getHours() < startH){
+      t.setHours(startH, 0, 0, 0);
+      return t;
+    }
+    if(t.getHours() >= endH){
+      t.setDate(t.getDate() + 1);
+      t.setHours(startH, 0, 0, 0);
+      return t;
+    }
+    return t;
+  }
+
+  function fmtSlot(start, end){
+    return WD[start.getDay()] + ' ' + pad2(start.getHours()) + ':' + pad2(start.getMinutes()) +
+      '–' + pad2(end.getHours()) + ':' + pad2(end.getMinutes());
+  }
+
+  function wakingMinutesBetween(a, b, startH, endH){
+    var total = 0;
+    var day = new Date(a.getTime());
+    day.setHours(0, 0, 0, 0);
+    var guard = 0;
+    while(day.getTime() <= b.getTime() && guard < 60){
+      var winStart = new Date(day.getTime()); winStart.setHours(startH, 0, 0, 0);
+      var winEnd = new Date(day.getTime()); winEnd.setHours(endH, 0, 0, 0);
+      var lo = Math.max(winStart.getTime(), a.getTime());
+      var hi = Math.min(winEnd.getTime(), b.getTime());
+      if(hi > lo){ total += (hi - lo) / 60000; }
+      day = new Date(day.getTime() + 24 * 3600000);
+      guard++;
+    }
+    return total;
+  }
+
+  function buildPlan(kapitelRaw, now, klausurDate){
+    var deadline = new Date(klausurDate.getTime() - RESERVED_MS);
+    var kapitel = (kapitelRaw || []).slice();
+    kapitel.sort(function(a, b){ return (a.n || 0) - (b.n || 0); });
+
+    var cursor = clampWindow(roundUpMinutes(now, 5), WIN_START, WIN_END);
+    var entries = [];
+    var stopped = false;
+    var lastScheduledIndex = -1;
+    var i, kap, remaining, part, placed, dayEnd, limit, availMin, blockLen, start, end;
+
+    for(i = 0; i < kapitel.length; i++){
+      if(stopped){ break; }
+      kap = kapitel[i];
+      remaining = Math.max(0, kap.min || 0);
+      part = 0;
+      placed = false;
+
+      while(remaining > 0){
+        cursor = clampWindow(cursor, WIN_START, WIN_END);
+        if(cursor.getTime() >= deadline.getTime()){ stopped = true; break; }
+
+        dayEnd = new Date(cursor.getTime());
+        dayEnd.setHours(WIN_END, 0, 0, 0);
+        limit = Math.min(dayEnd.getTime(), deadline.getTime());
+        availMin = Math.floor((limit - cursor.getTime()) / 60000);
+
+        if(availMin < MIN_SLIVER){
+          cursor = new Date(dayEnd.getTime());
+          continue;
+        }
+
+        blockLen = Math.min(MAX_BLOCK, remaining, availMin);
+        start = new Date(cursor.getTime());
+        end = new Date(start.getTime() + blockLen * 60000);
+        part++;
+        entries.push({
+          type: 'kapitel', id: 'k' + kap.n + '-' + part, n: kap.n, titel: kap.titel,
+          start: start, end: end, min: blockLen, mehrteilig: (blockLen < kap.min) || part > 1
+        });
+        placed = true;
+        remaining -= blockLen;
+        cursor = new Date(end.getTime() + BREAK_MIN * 60000);
+      }
+
+      if(placed){ lastScheduledIndex = i; }
+      if(stopped || !placed){ stopped = true; break; }
+    }
+
+    var optional = kapitel.slice(lastScheduledIndex + 1);
+
+    if(optional.length > 0){
+      var vorabend = new Date(klausurDate.getTime());
+      vorabend.setDate(vorabend.getDate() - 1);
+      vorabend.setHours(19, 0, 0, 0);
+      var simStart = vorabend;
+      var j, e;
+      for(j = 0; j < entries.length; j++){
+        e = entries[j];
+        if(sameDay(e.start, vorabend) && e.end.getTime() > simStart.getTime()){
+          simStart = new Date(e.end.getTime() + BREAK_MIN * 60000);
+        }
+      }
+      simStart = clampWindow(simStart, WIN_START, WIN_END);
+      var simEnd = new Date(simStart.getTime() + SIM_MIN * 60000);
+      entries.push({
+        type: 'sim', id: 'sim', titel: 'Klausursimulator', start: simStart, end: simEnd, min: SIM_MIN
+      });
+    }
+
+    entries.push({
+      type: 'reserved', id: 'reserved', titel: 'Formelsammlung durchgehen + ankommen',
+      start: deadline, end: klausurDate, min: Math.round(RESERVED_MS / 60000)
+    });
+
+    entries.sort(function(a, b){ return a.start.getTime() - b.start.getTime(); });
+
+    return { entries: entries, optional: optional };
+  }
+
+  function loadState(key){
+    try{
+      var raw = window.localStorage.getItem(key);
+      if(!raw){ return {}; }
+      var parsed = JSON.parse(raw);
+      return (parsed && typeof parsed === 'object') ? parsed : {};
+    }catch(e){
+      return {};
+    }
+  }
+
+  function saveState(key, state){
+    try{
+      window.localStorage.setItem(key, JSON.stringify(state));
+    }catch(e){ /* ignore (privater Modus / voller Speicher) */ }
+  }
+
+  function renderEntry(entry, state, storageKey){
+    var item = document.createElement('div');
+    item.className = 'plan-item';
+    if(entry.type === 'reserved'){ item.className += ' is-reserved'; }
+    if(entry.type === 'sim'){ item.className += ' is-sim'; }
+    if(state[entry.id]){ item.className += ' is-done'; }
+
+    var time = document.createElement('div');
+    time.className = 'plan-time';
+    time.textContent = fmtSlot(entry.start, entry.end);
+    item.appendChild(time);
+
+    var main = document.createElement('div');
+    main.className = 'plan-main';
+    var title = document.createElement('span');
+    title.className = 'plan-title';
+    var titleText = entry.titel;
+    if(entry.type === 'kapitel' && entry.mehrteilig){ titleText += ' – Teil'; }
+    title.textContent = titleText;
+    main.appendChild(title);
+    var sub = document.createElement('span');
+    sub.className = 'plan-sub';
+    sub.textContent = entry.min + ' Min';
+    main.appendChild(sub);
+    item.appendChild(main);
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'plan-check';
+    if(state[entry.id]){ btn.className += ' is-checked'; }
+    btn.textContent = '✓';
+    btn.setAttribute('aria-label', 'Erledigt: ' + entry.titel);
+    btn.addEventListener('click', function(){
+      var nowChecked = !state[entry.id];
+      if(nowChecked){ state[entry.id] = true; } else { delete state[entry.id]; }
+      saveState(storageKey, state);
+      if(nowChecked){
+        item.className += ' is-done';
+        btn.className += ' is-checked';
+      }else{
+        item.className = item.className.replace(' is-done', '');
+        btn.className = btn.className.replace(' is-checked', '');
+      }
+    });
+    item.appendChild(btn);
+
+    return item;
+  }
+
+  function renderPlan(plan, klausurDate, now, storageKey){
+    var state = loadState(storageKey);
+    var timeline = document.getElementById('planTimeline');
+    var i;
+    if(timeline){
+      for(i = 0; i < plan.entries.length; i++){
+        timeline.appendChild(renderEntry(plan.entries[i], state, storageKey));
+      }
+    }
+
+    var optionalWrap = document.getElementById('planOptional');
+    var optionalList = document.getElementById('planOptList');
+    if(plan.optional.length > 0 && optionalWrap && optionalList){
+      optionalWrap.hidden = false;
+      for(i = 0; i < plan.optional.length; i++){
+        var li = document.createElement('li');
+        var span = document.createElement('span');
+        span.textContent = 'Kapitel ' + plan.optional[i].n + ' – ' + plan.optional[i].titel;
+        li.appendChild(span);
+        var pill = document.createElement('span');
+        pill.className = 'pill';
+        pill.textContent = 'optional, falls Zeit bleibt';
+        li.appendChild(pill);
+        optionalList.appendChild(li);
+      }
+    }
+
+    var honest = document.getElementById('planHonest');
+    if(honest){
+      var wachMin = wakingMinutesBetween(now, klausurDate, WACH_START, WACH_END);
+      var lernMin = 0;
+      for(i = 0; i < plan.entries.length; i++){
+        if(plan.entries[i].type === 'kapitel' || plan.entries[i].type === 'sim'){
+          lernMin += plan.entries[i].min;
+        }
+      }
+      honest.textContent = 'Ehrlich gerechnet: bis ' + WD[klausurDate.getDay()] + ' ' +
+        pad2(klausurDate.getHours()) + ':' + pad2(klausurDate.getMinutes()) + ' bleiben ' +
+        Math.round(wachMin / 60) + ' h Wachzeit, davon realistisch ' + Math.round(lernMin / 60) + ' h Lernzeit.';
+    }
+  }
+
+  function startCountdown(klausurDate){
+    var valueEl = document.getElementById('planCountdownValue');
+    if(!valueEl){ return; }
+
+    function tick(){
+      var now = new Date();
+      var diff = klausurDate.getTime() - now.getTime();
+      if(diff <= 0){
+        showDone();
+        return;
+      }
+      var hours = Math.floor(diff / 3600000);
+      var minutes = Math.floor((diff % 3600000) / 60000);
+      valueEl.textContent = 'noch ' + hours + ' h ' + minutes + ' min';
+      if(diff < 12 * 3600000){
+        valueEl.className = 'plan-cd-value is-urgent';
+      }else{
+        valueEl.className = 'plan-cd-value';
+      }
+    }
+
+    tick();
+    setInterval(tick, 60000);
+  }
+
+  function showDone(){
+    var live = document.getElementById('planLive');
+    var done = document.getElementById('planDone');
+    if(live){ live.hidden = true; }
+    if(done){ done.hidden = false; }
+  }
+
+  function init(){
+    var dataEl = document.getElementById('planData');
+    if(!dataEl){ return; }
+    var planData;
+    try{
+      planData = JSON.parse(dataEl.textContent || dataEl.innerHTML || '{}');
+    }catch(e){
+      return;
+    }
+
+    var fach = planData.fach || '';
+    var klausurDate = parseLocalDateTime(planData.klausur);
+    var kapitel = planData.kapitel || [];
+    var fallback = document.getElementById('planFallback');
+
+    if(!klausurDate){
+      if(fallback){ fallback.hidden = false; }
+      return;
+    }
+
+    var now = new Date();
+    if(now.getTime() >= klausurDate.getTime()){
+      showDone();
+      return;
+    }
+
+    var storageKey = 'bk-plan-' + fach.toLowerCase();
+    var plan = buildPlan(kapitel, now, klausurDate);
+    renderPlan(plan, klausurDate, now, storageKey);
+    startCountdown(klausurDate);
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  }else{
+    init();
+  }
+})();
+</script>
+
 <nav class="tabbar" id="tabbar">
   <button class="tab on" data-tab="hub"><svg class="i"><use href="#i-home"/></svg><span>Start</span></button>
   <button class="tab" data-tab="pfad"><svg class="i"><use href="#i-map"/></svg><span>Lernpfad</span></button>
@@ -3125,6 +4183,7 @@ window.BKBC = (function(){
   function euro(v){ return v.toFixed(2).replace(".",",")+" €"; }
   function ownedChapters(){ var c=0; for(var i=1;i<=10;i++){ if(i!==3 && ST.owned[i]) c++; } return c; }
   function hasKomplett(){ return ZUGANG==="komplett" || ST.pkg==="komplett"; }
+  window.BK_HAS_KOMPLETT = hasKomplett;   /* fuer den Simulator */
   function hasAllHandouts(){ return !!ST.hoAll; }
   function handoutUnlocked(n){ return hasAllHandouts() || !!ST.hoOwned[n]; }
 
@@ -3286,9 +4345,9 @@ window.BKBC = (function(){
   window.addEventListener("resize", function(){ drawRail($("pathwrap")); });
 
   /* ================= ROUTER ================= */
-  var screens = {hub:"screen-hub", pfad:"screen-pfad", lektion:"screen-lektion", wiederholen:"screen-wiederholen", nachrichten:"screen-nachrichten", mehr:"screen-mehr", impressum:"screen-impressum", datenschutz:"screen-datenschutz", agb:"screen-agb", widerruf:"screen-widerruf"};
+  var screens = {simulator:"screen-simulator", spick:"screen-spick", plan:"screen-plan", hub:"screen-hub", pfad:"screen-pfad", lektion:"screen-lektion", wiederholen:"screen-wiederholen", nachrichten:"screen-nachrichten", mehr:"screen-mehr", impressum:"screen-impressum", datenschutz:"screen-datenschutz", agb:"screen-agb", widerruf:"screen-widerruf"};
   var tabbar = $("tabbar"), lbar = $("lbar");
-  var TB_TITLES = {pfad:"Lernpfad", wiederholen:"Wiederholen", nachrichten:"Nachrichten", mehr:"Einstellungen", impressum:"Impressum", datenschutz:"Datenschutz", agb:"AGB", widerruf:"Widerruf"};
+  var TB_TITLES = {simulator:"Klausursimulator", spick:"Formelsammlung", plan:"Notfallplan", pfad:"Lernpfad", wiederholen:"Wiederholen", nachrichten:"Nachrichten", mehr:"Einstellungen", impressum:"Impressum", datenschutz:"Datenschutz", agb:"AGB", widerruf:"Widerruf"};
   function show(name){
     Object.keys(screens).forEach(function(k){ $(screens[k]).classList.toggle("active", k===name); });
     document.body.setAttribute("data-screen", name);
@@ -3296,11 +4355,12 @@ window.BKBC = (function(){
     if(name==="pfad") buildPath();
     if(name==="hub") renderHub();
     if(name==="wiederholen") renderRep();
+    if(name==="simulator" && window.BK_SIM_OPEN) window.BK_SIM_OPEN();
     var inLesson = (name==="lektion");
     tabbar.style.display = inLesson ? "none" : "flex";
     lbar.classList.toggle("on", inLesson);
     if(!inLesson){
-      var tabName = (name==="impressum"||name==="datenschutz"||name==="agb"||name==="widerruf") ? "mehr" : name;
+      var tabName = (name==="simulator"||name==="spick"||name==="plan"||name==="impressum"||name==="datenschutz"||name==="agb"||name==="widerruf") ? "mehr" : name;
       document.querySelectorAll(".tab").forEach(function(t){ t.classList.toggle("on", t.dataset.tab===tabName); });
     }
     window.scrollTo(0,0);
@@ -4290,5 +5350,13 @@ html.bklg-lock,body.bklg-lock{overflow:hidden!important;overscroll-behavior:none
 })();
 
 </script>
-<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "8f1261b869214e90b82cb2a1d5683f5c"}'></script><!-- End Cloudflare Web Analytics --></body>
+<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "8f1261b869214e90b82cb2a1d5683f5c"}'></script><!-- End Cloudflare Web Analytics -->
+<script id="bkSimBridge">
+(function(){
+  window.BK_SIM_SHARE_URL = "https://osta.klausurchecker.de/";
+  window.BK_SIM_ACCESS = function(){ try{ return typeof window.BK_HAS_KOMPLETT === "function" ? !!window.BK_HAS_KOMPLETT() : false; }catch(e){ return false; } };
+  window.BK_SIM_BUY = function(){ try{ var b=document.querySelector('[data-tab="pfad"]'); if(b) b.click(); }catch(e){} };
+})();
+</script>
+</body>
 </html>
