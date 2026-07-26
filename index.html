@@ -868,7 +868,7 @@ window.BKBC = (function(){
 
   <div class="stats num">
     <div class="stat"><b id="statDone">0</b><span>erledigt</span></div>
-    <div class="stat"><b id="cdBig">&hellip;</b><span>Tage bis Klausur</span></div>
+    <div class="stat"><b id="cdBig">&hellip;</b><span id="cdBigLbl">Tage bis Klausur</span></div>
     <div class="stat"><b>160</b><span>Selbsttest&#8209;Fragen</span></div>
   </div>
 
@@ -3114,6 +3114,9 @@ window.BKBC = (function(){
     var dk = daysTo(KLAUSUR), df = daysTo(FRIST);
     var cd = $("cd");   if(cd)   cd.textContent   = dk + (dk===1?" Tag":" Tage");
     var b  = $("cdBig");if(b)    b.textContent    = dk;
+    /* Am letzten Tag stand hier "1 Tage bis Klausur" - genau an dem Tag,
+       an dem die meisten draufschauen. */
+    var bl = $("cdBigLbl"); if(bl) bl.textContent = (dk===1 ? "Tag bis Klausur" : "Tage bis Klausur");
     var c4 = $("cd4");  if(c4)   c4.textContent   = df + (df===1?" Tag":" Tage");
   })();
 
