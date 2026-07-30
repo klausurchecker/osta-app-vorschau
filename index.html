@@ -4118,9 +4118,14 @@ window.BKBC = (function(){
   /* ================= KONFIG ================= */
   var ZUGANG = "probe";
   var VORMERK_URL = "{{VORMERK_ENDPOINT}}"; /* VPS-Endpoint: nimmt Vormerkung an, verschickt Mail via Brevo */                    /* "probe" | "komplett" · Komplett-Build: auf "komplett" setzen ({{LIZENZ_TOKEN}}) */
-  /* Termin und Frist kommen aus termine.js - kein zweites Datum hier. */
+  /* Termin und Frist kommen aus termine.js - kein zweites Datum hier.
+
+     Das Kuerzel steht bewusst GROSS mit .toLowerCase() dahinter: aus dieser
+     Datei zieht build_app.py die Schale fuer jedes neue Fach, und die Fabrik
+     ersetzt nur grossgeschriebene Kuerzel. Ein direktes "osta" bliebe stehen
+     und jedes neue Fach zeigte OSTA-Termine. Nicht "vereinfachen". */
   var ZT = (window.BWLK_TERMINE && window.BWLK_TERMINE.appTexte)
-             ? window.BWLK_TERMINE.appTexte("osta") : null;
+             ? window.BWLK_TERMINE.appTexte("OSTA".toLowerCase()) : null;
   var KLAUSUR = ZT && ZT.klausurTag, FRIST = KLAUSUR;
   var QP = {};
   try { QP = Object.fromEntries(new URLSearchParams(location.search)); } catch(e){}
